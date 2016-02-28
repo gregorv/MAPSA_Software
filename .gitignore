@@ -1,4 +1,6 @@
 plots/
+data/*_calibrated*
+daqlogs/
 *.pyc
 *.~
 *#

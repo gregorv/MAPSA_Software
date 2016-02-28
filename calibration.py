@@ -1,10 +1,10 @@
 
 from classes import *
-import elementtree.ElementTree 
 from xml.dom import minidom
-from elementtree.ElementTree import Element, SubElement, Comment
-#import ROOT
-#from ROOT import TGraph
+#import elementtree.ElementTree 
+#from elementtree.ElementTree import Element, SubElement, Comment
+import xml.etree.ElementTree 
+from xml.etree.ElementTree import Element, SubElement, Comment
 import sys, select, os, array
 from array import array
 import ROOT
@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import show, plot
 
 from optparse import OptionParser
+
 parser = OptionParser()
 parser.add_option('-s', '--setting', metavar='F', type='string', action='store',
 default	=	'none',
@@ -59,36 +60,28 @@ read = a._hw.getNode("Control").getNode('firm_ver').read()
 a._hw.dispatch()
 print "Running firmware version " + str(read)
 
-
 #a._hw.getNode("Control").getNode("logic_reset").write(0x1)
 #a._hw.dispatch()
 a._hw.getNode("Control").getNode("MPA_clock_enable").write(0x1)
 a._hw.dispatch()
 
 
-
-smode = 0x0
+smode = 0x0 # shutter options
 sdur = options.shutterdur
 
-
-snum = options.number
+snum = options.number # strobe settings
 sdel = 0xF
 slen = 0xF
 sdist = 0xFF
-
-
 
 dcindex=1
 
 buffnum=1
 
 
-
-	
-mpa = []  
+mpa = [] # get all MPAs
 for i in range(1,7):
 		mpa.append(mapsa.getMPA(i))
-
 
 Confnum=1
 configarr = []
@@ -99,9 +92,7 @@ else:
 SP=0
 
 
-
-
-config = mapsa.config(Config=1,string='default')
+config = mapsa.config(Config=1,string='default') # load default cfg
 config.upload()
 
 
@@ -109,15 +100,16 @@ confdict = {'OM':[3]*6,'RT':[0]*6,'SCW':[0]*6,'SH2':[0]*6,'SH1':[0]*6,'THDAC':[0
 config.modifyfull(confdict) 
 
 mapsa.daq().Strobe_settings(snum,sdel,slen,sdist,cal=CE)
+
 x1 = array('d')
 y1 = []
-for x in range(0,256):
+for x in range(0,256): # start threshold scan
 	if x%options.res!=0:
 		continue
 	if x%10==0:
 		print "THDAC " + str(x)
 
-	config.modifyperiphery('THDAC',[x]*6)
+	config.modifyperiphery('THDAC',[x]*6) # change threshold for all 6 MPAs
 	config.upload()
 	config.write()
 
