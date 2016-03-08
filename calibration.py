@@ -86,10 +86,10 @@ for i in range(1,7):
 Confnum=1
 configarr = []
 if options.setting=='calibration':
-	CE=1
+	CE=1 # Set Calibration Enable bit
 else:
 	CE=0
-SP=0
+SP=0 # Signal polarity
 
 
 config = mapsa.config(Config=1,string='default') # load default cfg
@@ -115,18 +115,21 @@ for x in range(0,256): # start threshold scan
 
 	mapsa.daq().Sequencer_init(smode,sdur)
 
-	pix,mem = mapsa.daq().read_data(buffnum)
-	ipix=0
-	for p in pix:
+	pix,mem = mapsa.daq().read_data(buffnum) # pix = [[MPA1_header,MPA1_header,MPA1_pix1,..,MPA1_pix48],..,[MPA6]]
 
+
+	ipix=0
+	for p in pix: # Loop over MPAs
+
+			p.pop(0) # Drop double header
 			p.pop(0)
-			p.pop(0)
-			y1.append([])
-			y1[ipix].append(array('d',p))
+			y1.append([]) # Append an empty array
+			y1[ipix].append(array('d',p)) # Append array of 48 pixels for each MPA and THDAC [MPA1[THDAC1[Pix1,..,Pix48] , .. , THDAC256[Pix1,..,Pix48]],..,MPA6[],[][]..]
 
 			ipix+=1
-	x1.append(x)
+	x1.append(x) # Array of THDAC 0-255
 	
+
 print "Generating nominal per pixel trimdac values"
 
 calibconfs = config._confs
@@ -142,18 +145,20 @@ yarrv = []
 grarr = []
 xdvals = []
 
-for i in range(0,6):
+for i in range(0,6): # loop over MPA
 	backup=TFile("plots/backup_preCalibration_"+options.string+"_MPA"+str(i)+".root","recreate")
 	calibconfxmlroot	=	calibconfsxmlroot[i]
 	xdvals.append(0.)
 	c1.cd(i+1)
 	thdacv = []
-	yarr =  np.array(y1[i])
+	yarr =  np.array(y1[i]) # [ THDAC1[Pix1,..,Pix48] , .. , THDAC256[Pix1,..,Pix48] ]
 	grarr.append([])
 	gr1 = []
-	yarrv.append(yarr)
-	for iy1 in range(0,len(yarr[0,:])):
-		yvec = yarr[:,iy1]
+	yarrv.append(yarr) # Equivalent to y1 without empty brackets at the end
+
+
+	for iy1 in range(0,len(yarr[0,:])): # loop over 48 pixels
+		yvec = yarr[:,iy1] # loop over 256 THDAC for one pixel
 		if max(yvec)==0:
 			print "zero"
 		gr1.append(TGraph(len(x1)-1,array('d',xvec),array('d',yvec)))
@@ -170,41 +175,44 @@ for i in range(0,6):
 			gPad.Update()
 
 
-
 		halfmax = max(yvec)/2.0
 		maxbin = np.where(yvec==max(yvec))
-		for ibin in range(0,len(xvec)-1):
+		for ibin in range(0,len(xvec)-1): # Loop over all THDAC
 
 			xval = xvec[ibin]
 			xval1 = xvec[ibin+1]
 			yval = yvec[ibin]
 			yval1 = yvec[ibin+1]
 	
-			if (yval1-halfmax)<0.0 and ibin>maxbin[0][0]:
-				if iy1%2==0:
+			if (yval1-halfmax)<0.0 and ibin>maxbin[0][0]: # Falling edge right before half maximum 
+				if iy1%2==0: # Left pixel (config always for two pixels (32bit))
 					prev_trim = int(calibconfxmlroot[(iy1)/2+1].find('TRIMDACL').text)
-				else:
+				else: # Right pixel
 					prev_trim = int(calibconfxmlroot[(iy1+1)/2].find('TRIMDACR').text)
-				#print "ptrim " + str(prev_trim)
-				#print "halfmax " +  str(halfmax)
 				
-				xdacval = (abs(yval-halfmax)*xval + abs(yval1-halfmax)*xval1)/(abs(yval-halfmax) + abs(yval1-halfmax))
+				xdacval = (abs(yval-halfmax)*xval + abs(yval1-halfmax)*xval1)/(abs(yval-halfmax) + abs(yval1-halfmax)) # calculate x @ half maximum
 
 				#if abs(yval-halfmax)<abs(yval1-halfmax):
 				#	xdacval = xval
 				#else:
 				#	xdacval = xval1
 				#print "xdacval " + str(xdacval)
-				trimdac = 31 + prev_trim - int(round(xdacval*1.456/3.75))
+				trimdac = 31 + prev_trim - int(round(xdacval*1.456/3.75)) # x*th_step/trim_step  
 				xdvals[i] += xdacval*1.456/3.75
-				#print trimdac
+				
+				if ibin%100==0:
+					print("halfmax: %s" %(halfmax))
+					print("maxbin: %s" %(maxbin))
+					print("prev_trim: %s" %(prev_trim))
+					print("xdaxval: %s" %(xdacval))
+					print("trimdac: %s" %(trimdac))
 
 				thdacv.append(trimdac)
 				break	
-			if ibin==len(xvec)-2:
-				if iy1%2==0:
+			if ibin==len(xvec)-2: # No curve, save old value
+				if iy1%2==0: # Left pixel
 					prev_trim = int(calibconfxmlroot[(iy1)/2+1].find('TRIMDACL').text)
-				else:
+				else: # Right pixel
 					prev_trim = int(calibconfxmlroot[(iy1+1)/2].find('TRIMDACR').text)
 	
 				trimdac = int(prev_trim)
@@ -212,21 +220,22 @@ for i in range(0,6):
 				print "UNTRIMMED"
 				break
 		
-	thdacvv.append(thdacv)
+	thdacvv.append(thdacv) 
 
 	print thdacv
 
+
 ave = 0
 for x in xdvals:
-	ave+=x/48.
-ave/=6.
+	ave+=x/48. # average per MPA
+ave/=6. # average of all MPAs
 
 
 offset = []
 avearr = []
 mpacorr = []
 for i in range(0,6):
-	thdacv = thdacvv[i]
+	thdacv = thdacvv[i] # [MPA1[TRIMDAC1,..,TRIMDAC256],..,MPA6[]]
 	ave15 = 0
 	for j in thdacvv[i]:
 		ave15+=j
@@ -285,8 +294,8 @@ for i in range(0,6):
 	xmlrootfile.write("data/Conf_calibrated_MPA"+str(i+1)+"_config1.xml")
 
 
+### Same threshold scan with calibrated pixel
 print "Testing Calibration"
-
 
 config1 = mapsa.config(Config=1,string='calibrated')
 config1.upload()
@@ -325,27 +334,20 @@ for x in range(0,256):
 			config1.upload()
 			config1.write()
 	
-
-
-
-
-
 			mapsa.daq().Sequencer_init(smode,sdur)
 			pix,mem = mapsa.daq().read_data(buffnum)
 			ipix=0
+
 			for p in pix:
 
 				p.pop(0)
 				p.pop(0)
-				#print p
 				y1.append([])
 				y1[ipix].append(array('d',p))
 
 				ipix+=1
 			x1.append(x)
 			
-	
-
 
 c2 = TCanvas('c2', '', 700, 900)
 c2.Divide(2,3)
@@ -390,10 +392,7 @@ for m in means:
 c2.Print('plots/Scurve_Calibration'+options.string+'_post.root', 'root')
 c2.Print('plots/Scurve_Calibration'+options.string+'_post.pdf', 'pdf')
 c2.Print('plots/Scurve_Calibration'+options.string+'_post.png', 'png')
-#c3 = TCanvas('c2', '', 700, 600)
-#gr2[4].Draw()
-#gPad.Update()
-#c3.Print('plots/test.pdf', 'pdf')
+
 print ""
 print "Done"
 
