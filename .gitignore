@@ -1,4 +1,5 @@
 plots/
+test/
 data/*_calibrated*
 daqlogs/
 *.pyc
