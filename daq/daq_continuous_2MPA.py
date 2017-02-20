@@ -18,7 +18,8 @@ parser.add_argument("--mpa-index", "-i", metavar="IDX", type=int, choices=range(
 parser.add_argument("--output-dir", "-o", metavar="DIR",
                     help="Directory where run data is stored", default="./data")
 parser.add_argument("--config", "-c", metavar="FILEFORMAT",
-                    help="Filename format string for trimming and masking MPA configuration. The variables {assembly} and {mpa} are available.", default="data/Conf-{assembly}_MPA-{mpa}.xml")
+                    help="Filename format string for trimming and masking MPA configuration. The variables {assembly} and {mpa} are available.", default="Conf-{assembly}_MPA-{mpa}.xml")
+parser.add_argument("--config-dir", metavar="DIR", default="data/", help="Configuration directory.")
 
 args = parser.parse_args()
 
@@ -55,7 +56,9 @@ try:
         # conf.append(mpa[iMPA].config("data/Conf_trimcalib_MPA" + str(nMPA)+
         # "_masked.xml")) # Use trimcalibrated config
         conf.append(mpa[iMPA].config(
-            args.config.format(mpa=nMPA, assembly=args.assembly)))
+            os.path.join(
+                args.config_dir,
+                args.config.format(mpa=nMPA, assembly=args.assembly))))
 except IOError, e:
     if e.filename and e.errno == errno.ENOENT:
         parser.error(
