@@ -10,7 +10,7 @@
 	<THDAC>33</THDAC>
     </periphery>
     <pixel n="1">
-	<PML>1</PML>   
+	<PML>0</PML>   
 	<ARL>1</ARL>   
 	<TRIMDACL>15</TRIMDACL> 
 	<CEL>1</CEL>      

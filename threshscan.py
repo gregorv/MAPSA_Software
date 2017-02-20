@@ -10,12 +10,8 @@ from ROOT import TH2F, TCanvas, TTree, TBranch, TFile
 #from ROOT import TGraph
 import sys, select, os, array,subprocess
 from array import array
-#import ROOT
-#from ROOT import TGraph
 import datetime
 saveout = sys.stdout
-
-
 
 commands = []
 i=0

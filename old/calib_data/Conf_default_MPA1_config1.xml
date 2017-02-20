@@ -23,7 +23,7 @@
 	<SR>0</SR>       
     </pixel>
     <pixel n="2">
-	<PML>0</PML>   
+	<PML>1</PML>   
 	<ARL>1</ARL>   
 	<TRIMDACL>15</TRIMDACL> 
 	<CEL>1</CEL>      

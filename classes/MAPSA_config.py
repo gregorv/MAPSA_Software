@@ -57,7 +57,7 @@ class MAPSA_config:
 			self._confsxmltree.append(self._confs[i-1].xmltree)
 			self._confsxmlroot.append(self._confs[i-1].xmlroot)
 
-	def _spi_wait(self):
+	def spi_wait(self):
 		busy = self._Conf_busy.read()
 		self._hw.dispatch()
 		while busy:
@@ -138,7 +138,7 @@ class MAPSA_config:
 		self._hw.getNode("Configuration").getNode("num_MPA").write(0x6)
 		self._hw.getNode("Configuration").getNode("mode").write(0x5)
 		self._hw.dispatch()
-		self._spi_wait()
+		self.spi_wait()
 
     
 

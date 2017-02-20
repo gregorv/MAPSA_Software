@@ -1,8 +1,6 @@
 from classes import *
-from xml.dom import minidom
-#import elementtree.ElementTree 
-#from elementtree.ElementTree import Element, SubElement, Comment
 import xml.etree.ElementTree 
+from xml.dom import minidom
 from xml.etree.ElementTree import Element, SubElement, Comment
 import ROOT
 from ROOT import TH2F, TCanvas, TTree, TBranch, TFile

@@ -1,6 +1,11 @@
-plots/
-data/*_calibrated*
-daqlogs/
+plots/*
+data/*
 *.pyc
-*.~
-*#
+*~
+*.pdf
+*#*#
+daqlogs/*
+decoded/*
+*.root
+logs/*
+*.log

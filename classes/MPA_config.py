@@ -23,7 +23,7 @@ class MPA_config:
 		self.xmlroot = self.xmltree.getroot()
 
 
-	def _spi_wait(self):
+	def spi_wait(self):
 		busy = self._Conf_busy.read()
 		self._hw.dispatch()
 		while busy:
@@ -84,7 +84,7 @@ class MPA_config:
 		if (show):
 			print "uploading:"
 			print cur
-		self._spi_wait()
+		self.spi_wait()
 	
 		self._Memory_DataConf.getNode("MPA"+str(dcindex)).getNode("config_"+str(Config)).writeBlock(cur)
 		#self._hw.getNode("Configuration").getNode("num_MPA").write(0x1)
@@ -102,20 +102,20 @@ class MPA_config:
 		if (show):
 			print "uploading:"
 			print cur
-		self._spi_wait()
+		self.spi_wait()
 		self._Memory_DataConf.getNode("MPA"+str(dcindex)).getNode("config_"+str(Config)).writeBlock(cur)
-		self._spi_wait()
+		self.spi_wait()
 		return cur
 
 	def writeone(self,dcindex=1):
 		self._hw.getNode("Configuration").getNode("num_MPA").write(0x1)
 		self._hw.dispatch()
-		self._spi_wait()
+		self.spi_wait()
 		self._hw.getNode("Configuration").getNode("mode").write(6-dcindex)
 		self._hw.dispatch()
 
-		self._spi_wait()
-		return cur
+		self.spi_wait()
+		#return cur
 
 
 		
@@ -125,7 +125,7 @@ class MPA_config:
 
 		self._hw.getNode("Configuration").getNode("mode").write(0x5)
 		self._hw.dispatch()
-		self._spi_wait()
+		self.spi_wait()
 
 
 	def modifypixel(self, which, what, value):
@@ -152,16 +152,16 @@ class MPA_config:
 
 	def clean_conf(self):
 		for x in range(1,25):
-			self._conf.modifypixel(x,'PML', 0)
-			self._conf.modifypixel(x,'ARL', 0)
-			self._conf.modifypixel(x,'TRIMDACL', 15)
-			self._conf.modifypixel(x,'CEL', 0)
-			self._conf.modifypixel(x,'CW', 0)
-			self._conf.modifypixel(x,'PMR', 0)
-			self._conf.modifypixel(x,'ARR', 0)
-			self._conf.modifypixel(x,'TRIMDACR', 15)
-			self._conf.modifypixel(x,'CER', 0)
-			self._conf.modifypixel(x,'SP',  0) 
-			self._conf.modifypixel(x,'SR',  0) 
+			self.modifypixel(x,'PML', 0)
+			self.modifypixel(x,'ARL', 0)
+			self.modifypixel(x,'TRIMDACL', 15)
+			self.modifypixel(x,'CEL', 0)
+			self.modifypixel(x,'CW', 0)
+			self.modifypixel(x,'PMR', 0)
+			self.modifypixel(x,'ARR', 0)
+			self.modifypixel(x,'TRIMDACR', 15)
+			self.modifypixel(x,'CER', 0)
+			self.modifypixel(x,'SP',  0) 
+			self.modifypixel(x,'SR',  0) 
 
 
