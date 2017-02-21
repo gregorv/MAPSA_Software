@@ -1,4 +1,5 @@
 plots/*
+plots_kit/*
 data/*
 *.pyc
 *~
@@ -9,3 +10,5 @@ decoded/*
 *.root
 logs/*
 *.log
+*.swp
+backup/*
