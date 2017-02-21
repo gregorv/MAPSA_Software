@@ -10,10 +10,12 @@ parser.add_argument("--assembly", "-a", metavar="NAME",
                     help="Name of the assembly, used to differentiate trimming configurations", default="default")
 parser.add_argument("--mpa-index", "-i", metavar="IDX", type=int, choices=range(1, 7),
                     action="append", help="Specify the indices of the MPAs in the SPI chain", default=[])
-parser.add_argument("--config", "-c", metavar="FILEFORMAT",
-                    help="Filename format string for trimming and masking MPA configuration. The variables {assembly} and {mpa} are available.", default="Conf-{assembly}_MPA-{mpa}.xml")
+parser.add_argument("--config-in", "-c", metavar="FILEFORMAT",
+                    help="Filename format string for the default MPA configuration. The variables {assembly} and {mpa} are available.", default="Conf_default_MPA{mpa}_config1.xml")
+parser.add_argument("--config-out", "-o", metavar="FILEFORMAT",
+                    help="Filename format string where the trimmed MPA configuration is written to. The variables {assembly} and {mpa} are available.", default="Conf-{assembly}_MPA-{mpa}.xml")
 parser.add_argument("--config-dir", metavar="DIR", default="data/", help="Configuration directory.")
-parser.add_argument("--force", "-f", default="false", action="store_true", help="Force overriding of existing trim configurations.")
+parser.add_argument("--force", "-f", default="false", action="store_true", help="Force overwriting of existing trim configurations.")
 
 args = parser.parse_args()
 
@@ -25,6 +27,14 @@ if args.mpa_index:
     assembly = list(sorted(args.mpa_index))
 else:
     assembly = [2, 5]
+for MPA in assembly:
+    filename = os.path.join(args.config_dir,
+        args.config_out.format(mpa=MPA, assembly=args.assembly))
+    if os.path.exists(filename):
+        if args.force:
+            print "WARNING! Trimming will overwrite existing config {0}!".format(filename)
+        else:
+            args.error("Configuration file {0} exists. Please use --force or delete the file.")
 calibration = MPACalibration(assembly)
 mpaConfig = []
 
@@ -39,13 +49,8 @@ print """Command Line Configuration
 for MPA in assembly:
     # Construct list of XML files, one for each MPA
     filename = os.path.join(args.config_dir,
-        args.config.format(mpa=MPA, assembly=args.assembly))
-    if os.path.exists(filename):
-        if args.force:
-            print "WARNING! Overwrite existing config {0}!".format(filename)
-        else:
-            args.error("Configuration file {0} exists. Please use --force or delete the file.")
-    mpaConfig.append(filename)
+        args.config_in.format(mpa=MPA, assembly=args.assembly))
+    mpaConfig.append(ET.parse(filename))
 
 calibration.thresholdScan(calEnbl=True)
 calibration.writeCalibrationToMPA()
@@ -140,9 +145,9 @@ for iMPA, MPAtree in enumerate(mpaConfig):
         pixel.find('THRTRIMRATIOR').text = '{0:.5}'.format(
             str(fitvalsMPA[iMPA][2 * iPix + 1]))
 
-    MPAtree.write('data/Conf_trimcalib_MPA' +
-                  str(assembly[iMPA]) + '_config1.xml')
-
+    filename = os.path.join(args.config_dir,
+        args.config_out.format(mpa=assembly[iMPA], assembly=args.assembly))
+    MPAtree.write(filename)
 
 calibration.thresholdScan()
 
