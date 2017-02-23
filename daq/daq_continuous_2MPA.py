@@ -168,7 +168,7 @@ def acquire(numTriggers, stopDelay=2):
 
 class RippleCounterBranch(Structure):
     _fields_ = [
-            ("header", c_ulong),
+            ("header", c_uint),
             ("pixels", c_ushort*48)
         ]
 
@@ -231,7 +231,7 @@ def recordRoot():
         tree.Branch("rippleCounter", flood[i]["counter"], counterFormat)
         tree.Branch("memoryNoProcessing", flood[i]["noProcessing"], noProcessingFormat)
     try:
-        pixelMatrixMask = 2**49 - 1
+        totalEvents = 0
         for shutter, counters, memories, freeBuffers, frequency in acquire(args.num_triggers):
             for data, tree, counter, memory in zip(flood, trees, counters, memories):
                 for i, val in enumerate(itertools.islice(counter, 1, len(counter))):
@@ -243,7 +243,7 @@ def recordRoot():
                     data["counter"].pixels[i*2 + 0] = val & 0x7FFF # left
                     data["counter"].pixels[i*2 + 1] = (val >> 16) & 0x7FFF # right
                 # convert memory from uhal-format to ctype bytes array
-                memory_ints = (c_ulong*216)(*memory)
+                memory_ints = (c_uint*216)(*memory)
                 memory_bytes = cast(memory_ints, POINTER(c_ubyte))
                 # reset fill array
                 data["noProcessing"].pixelMatrix = (c_ulonglong*96)(0)
@@ -252,30 +252,36 @@ def recordRoot():
                 data["noProcessing"].corrupt = c_ubyte(0)
                 # iterate over memory in multipletts of 9 bytes (one 72 bit event)
                 evtIdx = 0
-                gotEvtData = False
-                for evtIdx in xrange(0, 96):
-                    evtData = tuple(itertools.islice(memory_bytes, evtIdx*9, evtIdx*9 + 9))
-                    data["noProcessing"].header[evtIdx] = evtData[0]
-                    if data["noProcessing"].header[evtIdx] == 0x00:
+                numEvents = 0
+                for evtIdx in reversed(xrange(0, 96)):
+                    evtData = tuple(
+                        itertools.islice(memory_bytes,
+                            evtIdx*9, evtIdx*9 + 9))
+                    data["noProcessing"].header[95-evtIdx] = evtData[8]
+                    if data["noProcessing"].header[95-evtIdx] == 0x00:
                         break
-                    elif data["noProcessing"].header[evtIdx] != 0xFF:
+                    elif data["noProcessing"].header[95-evtIdx] != 0xFF:
                         data["noProcessing"].corrupt = c_ubyte(evtIdx + 1)
                         break
-                    gotEvtData = True
+                    numEvents += 1
                     # bytes 1-8 as 64 bit integer, 1&2 are buch crossing id
-                    postHeader = cast(c_ulonglong, POINTER(evtData[1]))
-                    data["noProcessing"].bunchCrossingId[evtIdx] = (postHeader >> 48) & 0xFFFF
-                    data["noProcessing"].pixelMatrix[evtIdx] = postHeader & pixelMatrixMask
-                if gotEvtData:
-                    data["noProcessing"].numEvents = c_ubyte(evtIdx + 1)
+                    pixelMatrix = ((evtData[5] << 40) | (evtData[4] << 32) |
+                                   (evtData[3] << 24) | (evtData[2] << 16) |
+                                   (evtData[1] << 8) | evtData[0])
+                    bxid = ((evtData[7] << 8) | evtData[6])
+                    data["noProcessing"].bunchCrossingId[95-evtIdx] = bxid
+                    data["noProcessing"].pixelMatrix[95-evtIdx] = pixelMatrix
+                totalEvents += numEvents
+                data["noProcessing"].numEvents = c_ubyte(numEvents)
                 tree.Fill()
             # Fancy shmancy visual output
             progress[int(len(progress)*float(shutter)/float(args.num_triggers)) % len(progress)] = "#"
-            sys.stdout.write("\r\x1b[K [{3}] Shutter={0}  Free bufs={1}  freq={2:.0f} Hz  [{4}] {5:.0f}%".format(
+            sys.stdout.write("\r\x1b[K [{3}] Shutter={0}  Free bufs={1}  freq={2:.0f} Hz  #events={6}  [{4}] {5:.0f}%".format(
                 shutter, freeBuffers, frequency,
                 spinner[shutter % len(spinner)],
                 "".join(progress),
-                float(shutter) / float(args.num_triggers) * 100
+                float(shutter) / float(args.num_triggers) * 100,
+                totalEvents
             ))
             sys.stdout.flush()
     except KeyboardInterrupt:
