@@ -15,7 +15,7 @@ parser.add_argument("--config-in", "-c", metavar="FILEFORMAT",
 parser.add_argument("--config-out", "-o", metavar="FILEFORMAT",
                     help="Filename format string where the trimmed MPA configuration is written to. The variables {assembly} and {mpa} are available.", default="Conf-{assembly}_MPA-{mpa}.xml")
 parser.add_argument("--config-dir", metavar="DIR", default="data/", help="Configuration directory.")
-parser.add_argument("--force", "-f", default="false", action="store_true", help="Force overwriting of existing trim configurations.")
+parser.add_argument("--force", "-f", default=False, action="store_true", help="Force overwriting of existing trim configurations.")
 
 args = parser.parse_args()
 
@@ -34,7 +34,7 @@ for MPA in assembly:
         if args.force:
             print "WARNING! Trimming will overwrite existing config {0}!".format(filename)
         else:
-            args.error("Configuration file {0} exists. Please use --force or delete the file.")
+            parser.error("Configuration file {0} exists. Please use --force or delete the file.".format(filename))
 calibration = MPACalibration(assembly)
 mpaConfig = []
 
